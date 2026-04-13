@@ -1,0 +1,11 @@
+lmp
+libtorch/
+lammps-mace/
+.venv/
+ffield.reax.SiOH
+MACE_SiOH.pt
+env.sh
+*.log
+*.lammpstrj
+*.data
+!data/cracking-mod.data

@@ -1,0 +1,47 @@
+units metal
+boundary p p p
+atom_style full
+neighbor 1.0 bin
+neigh_modify delay 0 every 1 check yes
+bond_style zero nocoeff
+angle_style zero nocoeff
+
+read_data ../data/cracking-mod.data
+
+labelmap atom 1 Si 2 O 3 OW 4 HW
+labelmap bond 1 OW-HW
+labelmap angle 1 HW-OW-HW
+
+pair_style reaxff NULL checkqeq yes
+pair_coeff * * ../ffield.reax.SiOH Si O O H
+
+fix qeq all qeq/reaxff 1 0.0 10.0 1.0e-6 reaxff
+
+molecule h2omol H2O.mol
+create_atoms 0 random 3 3245 NULL mol h2omol 4585 overlap 2.0 maxtry 50
+
+group SiO type Si O
+group H2O type OW HW
+
+variable oxygen atom type==label2type(atom,OW)
+group oxygen dynamic all var oxygen
+variable nO equal count(oxygen)
+
+dump traj all custom 250 traj.lammpstrj id mol type q x y z
+dump_modify traj sort id
+
+compute ctH2O H2O temp
+compute_modify thermo_temp dynamic/dof yes
+compute_modify ctH2O dynamic/dof yes
+fix mynvt H2O nvt temp 300 300 0.05
+fix_modify mynvt temp ctH2O
+
+timestep 0.0005
+velocity H2O create 300 12345 rot yes dist gaussian
+
+fix fgcmc H2O gcmc 500 10 0 0 65899 300 -0.5 0.1 mol h2omol full_energy pressure 100
+
+thermo 250
+thermo_style custom step temp etotal v_nO f_fgcmc[3] f_fgcmc[4] f_fgcmc[5] f_fgcmc[6]
+
+run 25000

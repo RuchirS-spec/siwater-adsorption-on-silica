@@ -1,0 +1,62 @@
+units metal
+boundary p p p
+atom_style full
+neighbor 1.0 bin
+neigh_modify delay 1
+
+atom_modify map yes
+newton on
+
+bond_style harmonic
+angle_style harmonic
+
+read_data ../data/cracking-mod.data
+
+labelmap atom 1 Si 2 O 3 OW 4 HW
+labelmap bond 1 OW-HW
+labelmap angle 1 HW-OW-HW
+
+pair_style mace no_domain_decomposition
+pair_coeff * * ../MACE_SiOH.pt Si O O H
+
+bond_coeff * 0.0 0.0
+angle_coeff * 0.0 0.0
+
+molecule h2omol H2O.mol
+create_atoms 0 random 3 3245 NULL mol h2omol 4585 overlap 2.0 maxtry 50
+
+group SiO type Si O
+group H2O type OW HW
+
+delete_atoms overlap 2.0 H2O SiO mol yes
+
+variable oxygen atom "type==3"
+group oxygen dynamic all var oxygen
+variable nO equal count(oxygen)
+fix myat1 all ave/time 100 10 1000 v_nO file nwater.dat
+
+dump traj all custom 250 traj.lammpstrj id mol type x y z
+dump_modify traj sort id
+
+timestep 0.0005
+
+# restrict GCMC insertion to slightly inset region (avoids boundary issues)
+variable xlo equal xlo+0.1
+variable xhi equal xhi-0.1
+variable ylo equal ylo+0.1
+variable yhi equal yhi-0.1
+variable zlo equal zlo+0.1
+variable zhi equal zhi-0.1
+region system block ${xlo} ${xhi} ${ylo} ${yhi} ${zlo} ${zhi}
+
+variable tfac equal 5.0/3.0
+fix fgcmc H2O gcmc 200 20 0 0 65899 300 -0.5 0.1 &
+    mol h2omol tfac_insert ${tfac} group H2O &
+    full_energy pressure 100 region system
+
+thermo 250
+thermo_style custom step temp etotal v_nO f_fgcmc[3] f_fgcmc[4] f_fgcmc[5] f_fgcmc[6]
+
+run 25000
+write_data result.data
+write_dump all atom dump.lammpstrj
