@@ -98,7 +98,9 @@ echo "==> writing env.sh"
 cat > "${WS}/env.sh" << EOF
 #!/usr/bin/env bash
 WS="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-export LD_LIBRARY_PATH="\${WS}/libtorch/lib:/usr/local/cuda-12.8/lib64:\${LD_LIBRARY_PATH:-}"
+_LD="\${WS}/libtorch/lib:/usr/local/cuda-12.8/lib64"
+[ -n "\${CONDA_PREFIX:-}" ] && _LD="\${_LD}:\${CONDA_PREFIX}/lib"
+export LD_LIBRARY_PATH="\${_LD}:\${LD_LIBRARY_PATH:-}"
 [ -f "\${WS}/.venv/bin/activate" ] && source "\${WS}/.venv/bin/activate"
 EOF
 chmod +x "${WS}/env.sh"
