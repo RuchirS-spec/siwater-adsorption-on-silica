@@ -29,13 +29,17 @@ TORCH_CMAKE=$(python -c "import torch, os; print(os.path.join(torch.__path__[0],
 
 mkdir -p "$BUILD/build"
 cd "$BUILD/build"
+
 cmake ../src/cmake \
     -D PKG_ML-MACE=ON \
     -D PKG_REAXFF=ON \
     -D CMAKE_PREFIX_PATH="$TORCH_CMAKE;$CONDA_PREFIX" \
     -D CMAKE_INSTALL_PREFIX="$CONDA_PREFIX" \
     -D USE_CUDA=OFF \
-    -D CMAKE_BUILD_TYPE=Release 2>&1 | tee cmake.log
+    -D CMAKE_BUILD_TYPE=Release \
+    -D CMAKE_POLICY_VERSION_MINIMUM=3.5 \
+    -D CMAKE_EXE_LINKER_FLAGS="-L/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu" \
+    2>&1 | tee cmake.log
 
 echo "  cmake done, starting make (this takes 20-60 min, watch make.log)..."
 make -j"$(nproc)" 2>&1 | tee make.log
